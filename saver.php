@@ -8,6 +8,9 @@ abstract class PDO_Saver {
 	// 永久儲存資料
 	abstract public function save();
 	
+	// 刪除儲存資料
+	abstract public function delete();
+	
 	// 取得儲存的資料
 	abstract public static function get($pk);
 }
