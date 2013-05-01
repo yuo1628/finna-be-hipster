@@ -17,6 +17,11 @@ abstract class PDO_Saver {
 	public static function get($pk) {
 		throw new Exception("未實作get方法");
 	}
+	
+	// 取得所有儲存的資料
+	public static function all() {
+		throw new Exception("未實作all方法");
+	}
 }
 
 ?>
