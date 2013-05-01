@@ -1,27 +1,21 @@
 <?php
 
-// 此類別代表子類別會使用PDO來永久儲存資料
-abstract class PDO_Saver {
+// 此介面代表子類別會使用PDO來永久儲存資料
+interface iPDO_Saver {
 	// 取得與資料庫的連線
-	protected static function getConnection() {
-		throw new Exception("未實作getConnection方法");
-	}
+	protected static function getConnection();
 	
 	// 永久儲存資料
-	abstract public function save();
+	public function save();
 	
 	// 刪除儲存資料
-	abstract public function delete();
+	public function delete();
 	
 	// 取得儲存的資料
-	public static function get($pk) {
-		throw new Exception("未實作get方法");
-	}
+	public static function get($pk);
 	
 	// 取得所有儲存的資料
-	public static function all() {
-		throw new Exception("未實作all方法");
-	}
+	public static function all();
 }
 
 ?>

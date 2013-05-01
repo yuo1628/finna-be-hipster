@@ -2,7 +2,7 @@
 require './saver.php';
 
 // 文章類別
-class Article extends PDO_Saver {
+class Article implements iPDO_Saver {
 	private $pk; // 文章資料庫主鍵值
 	private $title; // 文章標題
 	private $context; // 文章內容
