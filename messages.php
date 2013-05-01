@@ -39,18 +39,11 @@ class Article extends PDO_Saver {
 	
 	// 取得與資料庫的連結
 	protected static function getConnection() {
-		return new PDO('mysql:host=mysql2.alwaysdata.com;dbname=gychen_demo',
-					   'gychen_demo',
-					   'AliceMonshin',
-					   array(PDO::ATTR_PERSISTENT => true,
-							)
-						);
+		return new PDO(); // missing
 	}
 	
 	// 將此文章永久儲存
-	// 回傳True代表更新成功
-	// 如果文章新增至資料庫則會傳主鍵值
-	
+	// 回傳True代表儲存成功
 	public function save() {
 		$connection = $this->getConnection();
 		// 新增文章至資料庫
@@ -60,16 +53,14 @@ class Article extends PDO_Saver {
 				VALUES (:title, :context)
 SQL;
 			$statement = $connection->prepare($addArticleSql);
-			$statement->bindParam(':title', $this->getTitle(), PDO::PARAM_STR);
-			$statement->bindParam(':context', $this->getContext(), PDO::PARAM_STR);
+			$statement->bindParam(':title', $this->title, PDO::PARAM_STR);
+			$statement->bindParam(':context', $this->context, PDO::PARAM_STR);
 			$result = $statement->execute(); // return True on success, return False on failure.
 			// 插入失敗
 			if ( ! $result) {
 				die(implode(', ', $statement->errorInfo()));
-				//return $result;
 			}
 			$this->setPk($connection->lastInsertId());
-			return $this->getPk();
 		}
 		// 更新文章至資料庫
 		else {
@@ -86,10 +77,9 @@ SQL;
 			if ( ! $result) {
 				die(implode(', ', $statement->errorInfo()));
 			}
-			else {
-				return True;
-			}
 		}
+		// 能執行到這表示文章更新或新增成功
+		return True;
 	}
 	
 	// 從資料庫中刪除文章
@@ -97,7 +87,7 @@ SQL;
 	// 回傳True則代表刪除成功
 	public function delete() {
 		$pk = $this->getPk();
-		if ( $pk == NULL) {
+		if ( is_null($pk) ) {
 			return False;
 		}
 		$deleteSql = <<<SQL
@@ -137,11 +127,33 @@ SQL;
 		if ( ! $row) {
 			return False;
 		}
+		// 把找到的文章的值存入物件中
 		$newArticle = new Article();
 		$newArticle->setPk($row['pk']);
 		$newArticle->setTitle($row['title']);
 		$newArticle->setContext($row['context']);
 		return $newArticle;
 	}
+	
+	// 取得所有儲存的文章
+	// 回傳包含Article實體的陣列
+	public static function all() {
+		$allSql = <<<SQL
+			SELECT pk, title, context
+			FROM article
+SQL;
+		$connection = Article::getConnection();
+		$allArticlesArray = array();
+		$statement = $connection->query($allSql);
+		foreach($statement->fetchAll() as $row) {
+			$newArticle = new Article();
+			$newArticle->setPk($row['pk']);
+			$newArticle->setTitle($row['title']);
+			$newArticle->setContext($row['context']);
+			$allArticlesArray[] = $newArticle;
+		}
+		return $allArticlesArray;
+	}
 }
+
 ?>
