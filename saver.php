@@ -3,7 +3,7 @@
 // 此介面代表子類別會使用PDO來永久儲存資料
 interface iPDO_Saver {
 	// 取得與資料庫的連線
-	protected static function getConnection();
+	public static function getConnection();
 	
 	// 永久儲存資料
 	public function save();
