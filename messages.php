@@ -38,12 +38,11 @@ class Article implements iPDO_Saver {
 	}
 	
 	// 取得與資料庫的連結
-	protected static function getConnection() {
+	public static function getConnection() {
 		return new PDO(); // missing
 	}
 	
 	// 將此文章永久儲存
-	// 回傳True代表儲存成功
 	public function save() {
 		$connection = $this->getConnection();
 		// 新增文章至資料庫
@@ -78,8 +77,6 @@ SQL;
 				die(implode(', ', $statement->errorInfo()));
 			}
 		}
-		// 能執行到這表示文章更新或新增成功
-		return True;
 	}
 	
 	// 從資料庫中刪除文章
@@ -87,6 +84,7 @@ SQL;
 	// 回傳True則代表刪除成功
 	public function delete() {
 		$pk = $this->getPk();
+		// 未設定主鍵值則代表此文章尚未新增至資料庫或已刪除
 		if ( is_null($pk) ) {
 			return False;
 		}
@@ -156,4 +154,135 @@ SQL;
 	}
 }
 
+// 部落格文章
+class BlogArticle extends Article {
+	private $date; // 文章發表日期
+	
+	public function __construct() {
+		$this->setDate(new DateTime('now')); // DateTime(string $time, DateTimeZone $timezone)
+	}
+	
+	// 設定文章發表日期
+	public function setDate($date) {
+		$this->date = $date;
+	}
+	
+	// 取得文章發表日期
+	public function getDate() {
+		return $this->date;
+	}
+	
+	// 儲存或更新文章至資料庫
+	public function save() {
+		$connection = $this->getConnection();
+		// 新增
+		if (is_null($this->getPk())) {
+			$insertSql = <<<SQL
+				INSERT INTO blog_article (title, context, date)
+				VALUES (:title, :context, FROM_UNIXTIME(:date))
+SQL;
+			$statement = $connection->prepare($insertSql);
+			$statement->bindValue(':title', $this->getTitle(), PDO::PARAM_STR);
+			$statement->bindValue(':context', $this->getContext(), PDO::PARAM_STR);
+			$statement->bindValue(':date', $this->getDate()->getTimestamp(), PDO::PARAM_STR);
+			// 如果SQL語法出錯
+			if (!$statement->execute()) {
+				die(implode(", ", $statement->errorInfo()));
+			}
+			$lastInsertId = $connection->lastInsertId();
+			$this->setPk($lastInsertId);
+		}
+		// 更新
+		else {
+			$updateSql = <<<SQL
+				UPDATE blog_article
+				SET title=:title, context=:context, date=FROM_UNIXTIME(:date)
+				WHERE pk=:pk
+SQL;
+			$statement = $connection->prepare($updateSql);
+			$statement->bindValue(':title', $this->getTitle());
+			$statement->bindValue(':context', $this->getContext());
+			$statement->bindValue(':date', $this->getDate()->getTimestamp());
+			$statement->bindValue(':pk', $this->getPk());
+			if (!$statement->execute()) {
+				die(implode(', ', $statement->errorInfo()));
+			}
+			$this->setPk(null);
+		}
+	}
+	
+	// 取得指定主鍵值的文章
+	public static function get($pk) {
+		$selectSql = <<<SQL
+			SELECT pk, title, context, date
+			FROM blog_article
+			WHERE pk=:pk
+SQL;
+		$statement = BlogArticle::getConnection()->prepare($selectSql);
+		$statement->bindParam(':pk', $pk);
+		// SQL 語法出錯
+		if (!$statement->execute()) {
+			die(implode(', ', $statement->errorInfo()));
+		}
+		$getArticle = new BlogArticle();
+		$row = $statement->fetch(PDO::FETCH_ASSOC);
+		// 找不到資料
+		if (!$row) {
+			return False;
+		}
+		// 填入從資料庫讀回的資料
+		$getArticle->setTitle($row['title']);
+		$getArticle->setContext($row['context']);
+		$getArticle->setDate(new DateTime($row['date']));
+		$getArticle->setPk($row['pk']);
+		return $getArticle;
+	}
+	
+	// 從資料庫中刪除文章
+	// 刪除成功則回傳True，資料不須刪除(資料庫中無此文章資料)時則回傳False
+	public function delete() {
+		$pk = $this->getPk();
+		// 無主鍵值則代表此文章已刪除或還未儲存
+		if (is_null($pk)) {
+			return False;
+		}
+		$deleteSql = <<<SQL
+			DELETE FROM blog_article
+			WHERE pk=:pk
+SQL;
+		$connection = $this->getConnection();
+		$statement = $connection->prepare($deleteSql);
+		$statement->bindValue(':pk', $pk);
+		// SQL語法出錯
+		if (!$statement->execute()) {
+			die(implode(', ', $statement->errorInfo()));
+		}
+		return True;
+	}
+	
+	// 取得所有已儲存文章
+	public static function all() {
+		$allSql = <<<SQL
+			SELECT pk, title, context, date
+			FROM blog_article
+SQL;
+		$connection = BlogArticle::getConnection();
+		$statement = $connection->query($allSql);
+		$all_articles = array();
+		$rows = $statement->fetchAll();
+		foreach ($rows as $row) {
+			$article = new BlogArticle();
+			$article->setPk($row['pk']);
+			$article->setTitle($row['title']);
+			$article->setContext($row['context']);
+			$article->setDate($row['date']);
+			$all_articles[] = $article;
+		}
+		return $all_articles;
+	}
+}
+
+print '<pre>';
+print_r(BlogArticle::all());
+print '</pre>';
 ?>
